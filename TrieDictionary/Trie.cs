@@ -27,25 +27,92 @@ public class Trie
         root = new TrieNode();
     }
 
-    public bool Insert(string word)
+    // Search for a word in the trie
+public bool Search(string word) 
+{
+    TrieNode current = root;
+    // For each character in the word
+    foreach (char c in word)
     {
-        TrieNode current = root;
-        foreach (char c in word)
+        // If the current node does not have the character as a child
+        if (!current.HasChild(c))
         {
-            if (!current.HasChild(c))
-            {
-                current.Children[c] = new TrieNode(c);
-            }
-            current = current.Children[c];
+            // The word is not in the trie
+            return false;
         }
-        if (current.IsEndOfWord)
+        // Move to the child node
+        current = current.Children[c];
+    }
+    // If the current node is the end of a word
+    return current.IsEndOfWord;
+}
+
+    public void Delete(string word)
+    {
+        Delete(root, word, 0);
+    }
+
+    private bool Delete(TrieNode current, string word, int index)
+    {
+        if (index == word.Length)
+        {
+            if (!current.IsEndOfWord)
+            {
+                return false;
+            }
+            current.IsEndOfWord = false;
+            return current.Children.Count == 0;
+        }
+
+        char c = word[index];
+        if (!current.HasChild(c))
         {
             return false;
         }
+
+        TrieNode child = current.Children[c];
+        bool shouldDeleteCurrentNode = Delete(child, word, index + 1) && !child.IsEndOfWord;
+
+        if (shouldDeleteCurrentNode)
+        {
+            current.Children.Remove(c);
+            return current.Children.Count == 0;
+        }
+
+        return false;
+}
+
+    public bool Insert(string word)
+    {
+        TrieNode current = root;
+        // For each character in the word
+        foreach (char c in word)
+        {
+            // If the current node does not have the character as a child
+            if (!current.HasChild(c))
+            {
+                // Add the character as a child
+                current.Children[c] = new TrieNode(c);
+            }
+            // Move to the child node
+            current = current.Children[c];
+        }
+        // If the current node is already the end of a word
+        if (current.IsEndOfWord)
+        {
+            // The word is already in the trie
+            return false;
+        }
+        // Mark the current node as the end of a word
         current.IsEndOfWord = true;
         return true;
     }
     
+    /// <summary>
+    /// Retrieves a list of suggested words based on the given prefix.
+    /// </summary>
+    /// <param name="prefix">The prefix to search for.</param>
+    /// <returns>A list of suggested words.</returns>
     public List<string> AutoSuggest(string prefix)
     {
         TrieNode currentNode = root;
@@ -62,8 +129,22 @@ public class Trie
 
     private List<string> GetAllWordsWithPrefix(TrieNode root, string prefix)
     {
-        return null;
+        List<string> words = new List<string>();
+        if (root == null)
+        {
+            return words;
+        }
+        if (root.IsEndOfWord)
+        {
+            words.Add(prefix);
+        }
+        foreach (var child in root.Children)
+        {
+            words.AddRange(GetAllWordsWithPrefix(child.Value, prefix + child.Key));
+        }
+        return words;
     }
+    
 
     public List<string> GetAllWords()
     {
@@ -130,7 +211,7 @@ public class Trie
     {
         int m = s.Length;
         int n = t.Length;
-        int[,] d = new int[m, n];
+        int[,] d = new int[m + 1, n + 1];
 
         if (m == 0)
         {
@@ -152,12 +233,12 @@ public class Trie
             d[0, j] = j;
         }
 
-        for (int j = 0; j <= n; j++)
+        for (int j = 1; j <= n; j++)
         {
-            for (int i = 0; i <= m; i++)
+            for (int i = 1; i <= m; i++)
             {
-                int cost = (s[i] == t[j]) ? 0 : 1;
-                d[i, j] = Math.Min(Math.Min(d[i, j] + 1, d[i, j] + 1), d[i, j] + cost);
+                int cost = (s[i - 1] == t[j - 1]) ? 0 : 1;
+                d[i, j] = Math.Min(Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1), d[i - 1, j - 1] + cost);
             }
         }
 
